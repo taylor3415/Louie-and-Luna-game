@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Trail Tails: Memory Match</title>
+    <style>
+        :root {
+            --forest-green: #2E4E3F;
+            --dirt-brown: #5C4033;
+            --leaf-green: #4A7C59;
+            --card-back: #8B5A2B;
+            --text-light: #F4F1DE;
+        }
+        body {
+            background-color: var(--forest-green);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: #F4F1DE;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 2.2rem;
+        }
+        p.subtitle {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #A3C4BC;
+            text-align: center;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 75px);
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .card {
+            width: 75px;
+            height: 75px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back-face {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            font-size: 2.5rem;
+        }
+        .card-front {
+            background-color: var(--card-back);
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px);
+        }
+        .card-back-face {
+            background-color: var(--text-light);
+            transform: rotateY(180deg);
+        }
+        .hidden {
+            display: none !important;
+        }
+        #win-screen {
+            margin-top: 30px;
+            text-align: center;
+            background-color: var(--leaf-green);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            max-width: 300px;
+        }
+        button {
+            background-color: var(--dirt-brown);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #704b3a;
+        }
+        @media (min-width: 400px) {
+            .game-board {
+                grid-template-columns: repeat(4, 85px);
+                gap: 15px;
+            }
+            .card {
+                width: 85px;
+                height: 85px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Forest Trail Tails</h1>
+    <p class="subtitle">Match Luna, Louie, and their favorite things!</p>
+
+    <div class="game-board" id="board"></div>
+
+    <div id="win-screen" class="hidden">
+        <h2>Awesome job! 🎉</h2>
+        <p>Luna and Louie are ready for their next adventure in the White Mountains.</p>
+        <button onclick="initGame()">Play Again</button>
+    </div>
+
+    <script>
+        // Game items: Luna, Louie, Corn Toy, Audi Q8, Mountains, Treat
+        const items = ['🐕', '🐶', '🌽', '🚙', '⛰️', '🦴'];
+        let deck = [...items, ...items];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let isLocked = false;
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function createCard(item, index) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.dataset.item = item;
+            card.dataset.index = index;
+
+            card.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-front"></div>
+                    <div class="card-back-face">${item}</div>
+                </div>
+            `;
+            
+            card.addEventListener('click', flipCard);
+            return card;
+        }
+
+        function initGame() {
+            const board = document.getElementById('board');
+            const winScreen = document.getElementById('win-screen');
+            board.innerHTML = '';
+            winScreen.classList.add('hidden');
+            
+            flippedCards = [];
+            matchedPairs = 0;
+            isLocked = false;
+            
+            deck = shuffle(deck);
+            deck.forEach((item, index) => {
+                board.appendChild(createCard(item, index));
+            });
+        }
+
+        function flipCard() {
+            if (isLocked || this.classList.contains('flipped')) return;
+
+            this.classList.add('flipped');
+            flippedCards.push(this);
+
+            if (flippedCards.length === 2) {
+                checkForMatch();
+            }
+        }
+
+        function checkForMatch() {
+            isLocked = true;
+            const [card1, card2] = flippedCards;
+
+            if (card1.dataset.item === card2.dataset.item) {
+                matchedPairs++;
+                flippedCards = [];
+                isLocked = false;
+                
+                if (matchedPairs === items.length) {
+                    setTimeout(() => {
+                        document.getElementById('win-screen').classList.remove('hidden');
+                    }, 500);
+                }
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                    isLocked = false;
+                }, 1000);
+            }
+        }
+
+        // Initialize game on load
+        initGame();
+    </script>
+</body>
+</html>
